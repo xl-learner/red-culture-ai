@@ -50,7 +50,7 @@ if page == "🏠 首页数据看板":
     st.markdown('<div class="sub-title">—— 基于大模型的江西红色文化智能讲述系统 ——</div>', unsafe_allow_html=True)
 
     if os.path.exists("img/banner.jpg"):
-        st.image("img/banner.jpg", width=True)
+        st.image("img/banner.jpg", use_container_width=True)
 
     st.divider()
 
@@ -78,7 +78,7 @@ if page == "🏠 首页数据看板":
         with c1:
             intro_path = "img/intro.jpg"
             if os.path.exists(intro_path):
-                st.image(intro_path, caption="星星之火，可以燎原", width=True)
+                st.image(intro_path, caption="星星之火，可以燎原", use_container_width=True)
             else:
                 st.info("图片加载中...")
         with c2:
@@ -200,7 +200,7 @@ elif page == "📖 红色故事库":
                     st.markdown("---")
 
                     # 播放按钮
-                    if st.button("🔊 生成语音讲解", key="db_tts", width=True):
+                    if st.button("🔊 生成语音讲解", key="db_tts", use_container_width=True):
                         with st.spinner(f"正在使用【{selected_voice_label}】合成语音..."):
                             filename = "db_story_audio.mp3"
                             if text_to_speech(content, filename, selected_voice_id):
@@ -242,7 +242,7 @@ elif page == "🎙️ AI 智能创作":
             )
 
         with col_btn:
-            submit_click = st.form_submit_button("✨ 立即创作", width=True, type="primary")
+            submit_click = st.form_submit_button("✨ 立即创作", use_container_width=True, type="primary")
 
     # --- 3. 核心逻辑 A：全新创作 (用户点击了按钮) ---
     if submit_click and user_input:
@@ -323,14 +323,14 @@ elif page == "🎙️ AI 智能创作":
                             data=file,
                             file_name="red_story_ai.mp3",
                             mime="audio/mp3",
-                            width=True
+                            use_container_width=True
                         )
                 else:
                     st.warning("音频文件丢失或生成失败")
 
             st.markdown("<br>", unsafe_allow_html=True)
             # 这里是真正需要 rerun 的地方，因为要把底层的状态清空并刷新页面
-            if st.button("🗑️ 清空重置", width=True):
+            if st.button("🗑️ 清空重置", use_container_width=True):
                 st.session_state.ai_creation_data = {
                     "topic": "",
                     "text": "",
@@ -365,4 +365,3 @@ elif page == "💬 红色百科问答":
                 st.markdown(response_text)
                 log_ai_usage("智能问答")
         st.session_state.messages.append({"role": "assistant", "content": response_text})
-

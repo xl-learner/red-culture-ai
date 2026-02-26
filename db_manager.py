@@ -50,7 +50,7 @@ def log_ai_usage(action_type):
 # 4. 获取真实统计数据
 def get_dashboard_stats():
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     # 统计故事总数
     cursor.execute("SELECT COUNT(*) as total FROM stories")

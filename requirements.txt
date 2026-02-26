@@ -1,6 +1,7 @@
 streamlit
-zhipuai
+zhipuai>=2.0.0
 edge-tts
-asyncio
 httpx
-mysql-connector-python==8.0.0
+sniffio
+anyio
+typing-extensions

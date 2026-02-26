@@ -13,13 +13,13 @@ def get_stories(category=None, search_query=None):
     sql = "SELECT * FROM stories WHERE 1=1"
     params = []
     if category and category != "全部":
-        sql += " AND category = %s"
+        sql += " AND category = ?"
         params.append(category)
     if search_query:
-        sql += " AND title LIKE %s"
+        sql += " AND title LIKE ?"
         params.append(f"%{search_query}%")
-    cursor.execute(sql, params)
-    stories = cursor.fetchall()
+    rows = cursor.fetchall()
+    stories = [dict(row) for row in rows]
     conn.close()
     return stories
 
@@ -65,7 +65,7 @@ def get_dashboard_stats():
     ai_count = cursor.fetchone()['ai_count']
 
     # 估算时长
-    cursor.execute("SELECT SUM(CHAR_LENGTH(content)) as total_chars FROM stories")
+    cursor.execute("SELECT SUM(LENGTH(content)) as total_chars FROM stories")
     res = cursor.fetchone()
     total_chars = res['total_chars'] if res['total_chars'] else 0
     total_hours = round(total_chars / 240 , 2) # 保留两位小数

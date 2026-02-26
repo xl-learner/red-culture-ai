@@ -3,10 +3,14 @@ import asyncio
 import edge_tts
 from zhipuai import ZhipuAI
 import re
+import streamlit as st
 
 # ================= 配置区域 =================
 # 1. API Key
-API_KEY = "465ead53815946e28ff7355d7a46e7cf.zcZ7G0RARRhCzQbF"
+try:
+    API_KEY = st.secrets["ZHIPU_API_KEY"]
+except:
+    API_KEY = "本地测试请手动填入Key"
 
 # 2. 这里是可以选择的声音列表
 # xiaoxiao: 温暖女声, yunyang: 专业男播音, yunxi: 活泼男声

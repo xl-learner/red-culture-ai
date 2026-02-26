@@ -1,4 +1,6 @@
 streamlit
-edge-tts
 zhipuai
+edge-tts
 asyncio
+httpx
+mysql-connector-python==8.0.0

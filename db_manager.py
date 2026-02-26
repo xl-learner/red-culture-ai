@@ -9,7 +9,7 @@ def get_db_connection():
 # 1. 获取所有故事
 def get_stories(category=None, search_query=None):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
     sql = "SELECT * FROM stories WHERE 1=1"
     params = []
     if category and category != "全部":
@@ -18,16 +18,16 @@ def get_stories(category=None, search_query=None):
     if search_query:
         sql += " AND title LIKE ?"
         params.append(f"%{search_query}%")
-    rows = cursor.fetchall()
-    stories = [dict(row) for row in rows]
+    cursor.execute(sql, params)
+    stories = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return stories
 
 # 2. 获取单个故事内容
 def get_story_content(title):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT content FROM stories WHERE title = %s", (title,))
+    cursor = conn.cursor()
+    cursor.execute("SELECT content FROM stories WHERE title = ?", (title,))
     result = cursor.fetchone()
     conn.close()
     return result['content'] if result else None
@@ -41,7 +41,7 @@ def log_ai_usage(action_type):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO ai_logs (action_type) VALUES (%s)", (action_type,))
+        cursor.execute("INSERT INTO ai_logs (action_type) VALUES (?)", (action_type,))
         conn.commit()
         conn.close()
     except Exception as e:
@@ -82,7 +82,7 @@ def get_dashboard_stats():
 # 5. 动态获取所有分类
 def get_all_categories():
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
     # 查询所有不重复的分类，且不为空
     cursor.execute("SELECT DISTINCT category FROM stories WHERE category IS NOT NULL AND category != ''")
     results = cursor.fetchall()

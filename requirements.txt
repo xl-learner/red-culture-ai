@@ -1,7 +1,12 @@
 streamlit
 zhipuai>=2.0.0
 edge-tts
+chromadb>=0.5.0
+sentence-transformers>=2.7.0
+torchvision
 httpx
 sniffio
 anyio
 typing-extensions
+requests
+tenacity

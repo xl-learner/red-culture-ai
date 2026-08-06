@@ -3,7 +3,7 @@ import streamlit as st
 import os
 import time
 from db_manager import get_stories, get_story_content, get_dashboard_stats, log_ai_usage,get_all_categories
-from ai_engine import generate_story_text, text_to_speech
+from ai_engine import generate_story_text, text_to_speech, generate_rag_answer
 
 # ================= 1. 页面配置 =================
 st.set_page_config(
@@ -42,6 +42,7 @@ selected_voice_label = st.sidebar.selectbox("选择讲解员声音：", list(voi
 selected_voice_id = voice_options[selected_voice_label]  # 获取对应的ID传给AI
 
 st.sidebar.info("💡 提示：在上方切换声音后，点击生成语音即可听到不同角色的解说。")
+
 st.sidebar.markdown("Designed by zwl")
 
 # ================= 3. 首页 (接入真实数据) =================
@@ -50,7 +51,7 @@ if page == "🏠 首页数据看板":
     st.markdown('<div class="sub-title">—— 基于大模型的江西红色文化智能讲述系统 ——</div>', unsafe_allow_html=True)
 
     if os.path.exists("img/banner.jpg"):
-        st.image("img/banner.jpg", use_container_width=True)
+        st.image("img/banner.jpg", width='stretch')
 
     st.divider()
 
@@ -78,7 +79,7 @@ if page == "🏠 首页数据看板":
         with c1:
             intro_path = "img/intro.jpg"
             if os.path.exists(intro_path):
-                st.image(intro_path, caption="星星之火，可以燎原", use_container_width=True)
+                st.image(intro_path, caption="星星之火，可以燎原", width='stretch')
             else:
                 st.info("图片加载中...")
         with c2:
@@ -201,15 +202,16 @@ elif page == "📖 红色故事库":
                     st.markdown("---")
 
                     # 播放按钮
-                    if st.button("🔊 生成语音讲解", key="db_tts", use_container_width=True):
+                    if st.button("🔊 生成语音讲解", key="db_tts", width='stretch'):
                         with st.spinner(f"正在使用【{selected_voice_label}】合成语音..."):
-                            filename = "db_story_audio.mp3"
+                            filename = "audio/db_story_audio.mp3"
                             if text_to_speech(content, filename, selected_voice_id):
                                 st.audio(filename, format="audio/mp3")
                                 st.success("🎉 讲解生成完毕！")
                                 log_ai_usage("语音合成")
                             else:
-                                st.error("语音合成失败。")
+                                st.error("❌ 语音合成失败，请检查网络连接或点击侧边栏的'测试语音合成连接'进行诊断。")
+                                st.info("💡 如果网络连接正常但仍失败，可能是因为Edge TTS服务暂时不可用，请稍后重试。")
 
     except Exception as e:
         st.error(f"数据库查询出错: {e}")
@@ -243,7 +245,7 @@ elif page == "🎙️ AI 智能创作":
             )
 
         with col_btn:
-            submit_click = st.form_submit_button("✨ 立即创作", use_container_width=True, type="primary")
+            submit_click = st.form_submit_button("✨ 立即创作", width='stretch', type="primary")
 
     # --- 3. 核心逻辑 A：全新创作 (用户点击了按钮) ---
     if submit_click and user_input:
@@ -259,13 +261,13 @@ elif page == "🎙️ AI 智能创作":
         # B. 首次生成语音
         if "API Key" not in generated_text:
             with st.spinner(f"🎙️ 【{selected_voice_label}】正在录制语音..."):
-                audio_filename = f"tts_{int(time.time())}.mp3"
+                audio_filename = f"audio/tts_{int(time.time())}.mp3"
                 if text_to_speech(generated_text, audio_filename, selected_voice_id):
                     st.session_state.ai_creation_data["audio_file"] = audio_filename
                     st.session_state.ai_creation_data["voice_id"] = selected_voice_id
                     log_ai_usage("语音合成")
                 else:
-                    st.error("语音合成失败")
+                    st.warning("⚠️ 文案已生成，但语音转换失败。您可以稍后重试或使用其他声音。")
 
 
 
@@ -278,7 +280,7 @@ elif page == "🎙️ AI 智能创作":
         if selected_voice_id != current_saved_voice and current_saved_voice != "":
             with st.spinner(f"🔄 检测到播音员切换，正在请【{selected_voice_label}】重新录制..."):
                 generated_text = st.session_state.ai_creation_data["text"]
-                audio_filename = f"tts_{int(time.time())}.mp3"
+                audio_filename = f"audio/tts_{int(time.time())}.mp3"
 
                 if text_to_speech(generated_text, audio_filename, selected_voice_id):
                     # 录制成功，更新状态
@@ -324,14 +326,14 @@ elif page == "🎙️ AI 智能创作":
                             data=file,
                             file_name="red_story_ai.mp3",
                             mime="audio/mp3",
-                            use_container_width=True
+                            width='stretch'
                         )
                 else:
                     st.warning("音频文件丢失或生成失败")
 
             st.markdown("<br>", unsafe_allow_html=True)
             # 这里是真正需要 rerun 的地方，因为要把底层的状态清空并刷新页面
-            if st.button("🗑️ 清空重置", use_container_width=True):
+            if st.button("🗑️ 清空重置", width='stretch'):
                 st.session_state.ai_creation_data = {
                     "topic": "",
                     "text": "",
@@ -344,9 +346,29 @@ elif page == "🎙️ AI 智能创作":
     else:
         st.info("👋 欢迎来到创作室！在上方输入主题按回车，即可生成专属红色故事。")
 
-# ================= 6. 问答 =================
+# ================= 6. 问答 (RAG 增强) =================
 elif page == "💬 红色百科问答":
     st.title("💬 红色文化智能问答")
+    st.caption("🔍 基于本地知识库的 RAG 检索增强生成，回答更准确、有据可依")
+
+    # 初始化索引（首次加载时构建向量库）
+    if "rag_initialized" not in st.session_state:
+        with st.spinner("正在初始化知识库索引...（首次运行需下载Embedding模型并构建向量索引，约需1-2分钟）"):
+            try:
+                from rag_engine import get_rag_engine
+                rag = get_rag_engine()
+                count = rag.build_index()
+                st.session_state.rag_initialized = True
+                st.session_state.rag_count = count
+            except Exception as e:
+                import traceback
+                st.error(f"知识库初始化失败: {e}")
+                with st.expander("查看详细错误信息"):
+                    st.code(traceback.format_exc())
+                st.session_state.rag_initialized = False
+
+    if st.session_state.get("rag_initialized"):
+        st.info(f"📚 知识库已就绪，共索引 {st.session_state.rag_count} 个文本块，覆盖 56 篇红色故事。")
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -361,8 +383,10 @@ elif page == "💬 红色百科问答":
             st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            with st.spinner("思考中..."):
-                response_text = generate_story_text(prompt, mode="chat")
+            with st.spinner("正在检索知识库并生成回答..."):
+                # 传入历史对话上下文（当前用户消息之前的所有消息）
+                history = st.session_state.messages[:-1]
+                response_text = generate_rag_answer(prompt, history_messages=history)
                 st.markdown(response_text)
                 log_ai_usage("智能问答")
         st.session_state.messages.append({"role": "assistant", "content": response_text})

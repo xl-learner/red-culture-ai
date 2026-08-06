@@ -1,5 +1,6 @@
 # db_manager.py
 import sqlite3
+from datetime import datetime
 
 def get_db_connection():
     conn = sqlite3.connect('red_culture.db', check_same_thread=False)
@@ -41,7 +42,11 @@ def log_ai_usage(action_type):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO ai_logs (action_type) VALUES (?)", (action_type,))
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        cursor.execute(
+            "INSERT INTO ai_logs (action_type, created_at) VALUES (?, ?)",
+            (action_type, now)
+        )
         conn.commit()
         conn.close()
     except Exception as e:
